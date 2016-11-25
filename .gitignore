@@ -1,0 +1,9 @@
+# Build directories
+
+bin
+obj
+
+# Vim
+
+*.sw*
+
