@@ -2,6 +2,8 @@
  * ARM Cortex-M0+
  * With CMSIS naming conventions
  *
+ * Does not support ISR table remapping
+ *
  * Kevin Cuzner
  */
 
@@ -73,6 +75,57 @@ __flash_config:
 
     .thumb
 
+    .section ".text"
+    .thumb_func
+    .global _startup
+    .global Reset_Handler
+
+/**
+ * Reset handler
+ *
+ * Loads .data from flash to RAM using the following linker-defined variables:
+ * __DATA_ROM : Beginning of .data stored in flash (source)
+ * __DATA_RAM : Beginning of .data in RAM (destination)
+ * __DATA_END : End of .data stored in flash
+ *
+ * Clears .bss using the following linker defined variables:
+ * __START_BSS : Beginning of .bss in RAM
+ *  __END_BSS : End of .bss in RAM
+ */
+
+Reset_Handler:
+    ldr r0, =__DATA_ROM
+    ldr r1, =__DATA_RAM
+    ldr r2, =__DATA_END
+data_load_loop:
+    cmp r0, r2
+    bge data_load_end
+    ldmia r0!,{r3}
+    stmia r1!,{r3}
+    b   data_load_loop
+data_load_end:
+    ldr r0, =__START_BSS
+    ldr r1, =__END_BSS
+    eors r2, r2
+bss_clear_loop:
+    cmp r0, r1
+    bge bss_clear_end
+    stmia r0!,{r2}
+    b   bss_clear_loop
+bss_clear_end:
+    ldr r0, =SystemInit
+    blx r0
+    ldr r0, =main
+    bx  r0
+
+/**
+ * Default handlers
+ *
+ * Implemented as infinite looping weak references. Perhaps a more debuggable
+ * option would be to make them separate? Or load a register with some magic
+ * value?
+ */
+
     .weak NMI_Handler
     .weak HardFault_Handler
     .weak SVC_Handler
@@ -108,37 +161,6 @@ __flash_config:
     .weak LPTMR0_Handler
     .weak PORTA_Handler
     .weak PORTD_Handler
-
-    .section ".text"
-    .thumb_func
-    .global _startup
-    .global Reset_Handler
-
-Reset_Handler:
-    ldr r0, =__DATA_ROM
-    ldr r1, =__DATA_RAM
-    ldr r2, =__DATA_END
-data_load_loop:
-    cmp r0, r2
-    bge data_load_end
-    ldmia r0!,{r3}
-    stmia r1!,{r3}
-    b   data_load_loop
-data_load_end:
-    ldr r0, =__START_BSS
-    ldr r1, =__END_BSS
-    eors r2, r2
-bss_clear_loop:
-    cmp r0, r1
-    bge bss_clear_end
-    stmia r0!, {r2}
-    b   bss_clear_loop
-bss_clear_end:
-    ldr r0, =startup
-    blx r0
-    ldr r0, =main
-    bx  r0
-    b   .
 
 NMI_Handler:
 HardFault_Handler:

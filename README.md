@@ -1,5 +1,4 @@
-# KL25 USB HID
+# KL25 Bare Metal Template
 
-This is an attempt to make the FRDM board into some sort of HID. Because it
-would be fun.
+This is a bare metal template for a KL25Z using arm-none-eabi-gcc.
 
